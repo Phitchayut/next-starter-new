@@ -3,12 +3,16 @@ import PageContainer from '@/app/components/container/PageContainer';
 import CustomFormLabel from '@/app/components/forms/theme-elements/CustomFormLabel';
 import CustomTextField from '@/app/components/forms/theme-elements/CustomTextField';
 import DashboardCard from '@/app/components/shared/DashboardCard';
+import { formUserValidateSchema } from '@/libs/validation/formValidation';
+import { Users } from '@/models/users/user.model';
 import { useAppDispatch } from '@/store/store';
 import { fetchUser, updateUser, userSelector } from '@/store/users/userSlice';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Button, Stack } from '@mui/material';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { useSelector } from 'react-redux';
 
 type Props = {
@@ -16,30 +20,42 @@ type Props = {
 };
 
 const Edit = ({ params }: Props) => {
-  const dispatch = useAppDispatch();
   const router = useRouter();
+
+  const dispatch = useAppDispatch();
   const userReducer = useSelector(userSelector);
   const { user } = userReducer;
-
-  const [data, setData] = useState({
-    name: '',
-    email: '',
-  });
-
   const idUser = params.id;
 
-  useEffect(() => {
-    dispatch(fetchUser(idUser));
-  }, []);
+  const initialValue: Users = {
+    name: user?.name || '',
+    email: user?.email || '',
+  };
 
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<Users>({
+    defaultValues: initialValue,
+    resolver: zodResolver(formUserValidateSchema),
+  });
+
+  useEffect(() => {
+    dispatch(fetchUser(parseInt(idUser)));
+  }, [dispatch, idUser]);
   useEffect(() => {
     if (user) {
-      setData({ name: user.name || '', email: user.email || '' });
+      reset({
+        name: user.name || '',
+        email: user.email || '',
+      });
     }
-  }, [user]);
+  }, [user, reset]);
 
-  const handleUpdate = async () => {
-    const mergeData = { ...data, id: parseInt(idUser) };
+  const onSubmit = async (values: Users) => {
+    const mergeData = { ...values, id: parseInt(idUser) };
     const res = await dispatch(updateUser(mergeData));
     if (res.type === 'users/updateUser/fulfilled') {
       alert('User Updated Successfully');
@@ -49,7 +65,6 @@ const Edit = ({ params }: Props) => {
     }
   };
 
-  console.log(user);
   return (
     <PageContainer
       title="Update User Page"
@@ -57,47 +72,58 @@ const Edit = ({ params }: Props) => {
     >
       <DashboardCard title="Update User Page">
         <>
-          <CustomFormLabel
-            sx={{
-              mt: 0,
-            }}
-            htmlFor="email-address"
-          >
-            Name
-          </CustomFormLabel>
-          <CustomTextField
-            id="email-address"
-            variant="outlined"
-            value={data.name}
-            onChange={(e: any) => setData({ ...data, name: e.target.value })}
-            fullWidth
-          />
-          <CustomFormLabel
-            sx={{
-              mt: 0,
-            }}
-            htmlFor="email-address"
-          >
-            Email
-          </CustomFormLabel>
-          <CustomTextField
-            id="email-address"
-            variant="outlined"
-            value={data.email}
-            onChange={(e: any) => setData({ ...data, email: e.target.value })}
-            fullWidth
-          />
-
-          <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
-            <Link href="/users">
-              <Button variant="contained" color="error">
-                Cancel
+          <form noValidate onSubmit={handleSubmit(onSubmit)}>
+            <CustomFormLabel
+              sx={{
+                mt: 0,
+              }}
+            >
+              Name
+            </CustomFormLabel>
+            <Controller
+              name="name"
+              control={control}
+              render={({ field }) => (
+                <CustomTextField
+                  {...field}
+                  variant="outlined"
+                  error={Boolean(errors.name?.message)}
+                  helperText={errors.name?.message?.toString()}
+                  fullWidth
+                />
+              )}
+            />
+            <CustomFormLabel
+              sx={{
+                mt: 0,
+              }}
+            >
+              Email
+            </CustomFormLabel>
+            <Controller
+              name="email"
+              control={control}
+              render={({ field }) => (
+                <CustomTextField
+                  {...field}
+                  variant="outlined"
+                  error={Boolean(errors.email?.message)}
+                  helperText={errors.email?.message?.toString()}
+                  fullWidth
+                />
+              )}
+            />
+            <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
+              <Link href="/users">
+                <Button variant="contained" color="error">
+                  Cancel
+                </Button>
+              </Link>
+              <Button variant="contained" color="success" type="submit">
+                Update
               </Button>
-            </Link>
-            <Button variant="contained" color="success" onClick={handleUpdate}>
-              Update
-            </Button>
-          </Stack>
+            </Stack>
+          </form>
         </>
       </DashboardCard>
     </PageContainer>
