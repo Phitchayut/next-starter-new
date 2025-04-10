@@ -34,6 +34,13 @@ const Menuitems: MenuitemsType[] = [
   },
   {
     id: uniqueId(),
+    title: "CRUD USER",
+    icon: 'user-bold-duotone',
+    href: "/users",
+    bgcolor: "success",
+  },
+  {
+    id: uniqueId(),
     title: "Test Menu",
     icon: 'phone-line-duotone',
     href: "/sample-page",
